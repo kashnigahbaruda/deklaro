@@ -3,66 +3,600 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Deklaro</title>
-<meta name="description" content="Deklaro — kontakta oss på kontakt@deklaro.se">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230f1115'/><text x='32' y='45' font-family='Georgia,serif' font-size='40' fill='%23f2f0ec' text-anchor='middle'>D</text></svg>">
+<title>Deklaro — utvecklare och designers i Stockholm</title>
+<meta name="description" content="Deklaro AB bygger digitala tjänster. Tullklar är i drift, Notacta kommer snart. Stockholm, Sverige. kontakt@deklaro.se">
+<meta name="theme-color" content="#05070d">
+<meta property="og:title" content="Deklaro">
+<meta property="og:description" content="Utvecklare och designers i Stockholm. Tullklar och Notacta.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://deklaro.se/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%2305070d'/><text x='32' y='49' font-family='Helvetica,Arial,sans-serif' font-weight='900' font-size='54' fill='%23f2efe9' text-anchor='middle'>D</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-  :root {
-    --bg: #0f1115;
-    --fg: #f2f0ec;
-    --muted: #8b8f98;
-    --rule: #262a32;
-  }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body {
-    margin: 0;
-    display: grid;
-    place-items: center;
-    padding: 2rem;
-    background: var(--bg);
-    color: var(--fg);
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  main {
-    text-align: center;
-    max-width: 34rem;
-  }
-  h1 {
-    margin: 0;
-    font-size: clamp(2.5rem, 13vw, 6rem);
-    font-weight: 500;
-    letter-spacing: 0.22em;
-    text-indent: 0.22em; /* offset trailing letter-space so it stays optically centred */
-    line-height: 1.05;
-  }
-  hr {
-    width: 3rem;
-    margin: 2.25rem auto;
-    border: 0;
-    border-top: 1px solid var(--rule);
-  }
-  a {
-    color: var(--muted);
-    font-size: clamp(0.9rem, 3.5vw, 1.05rem);
-    letter-spacing: 0.05em;
-    text-decoration: none;
-    border-bottom: 1px solid transparent;
-    padding-bottom: 2px;
-    transition: color 0.2s ease, border-color 0.2s ease;
-  }
-  a:hover, a:focus-visible {
-    color: var(--fg);
-    border-bottom-color: var(--rule);
-  }
+/* ─────────────────────────────────────────────────────────────
+   DEKLARO — tokens
+   ground: deep marine, the colour of an unlit port at 04:00
+   channel colours are semantic, taken from customs: green = cleared
+   and in service, red = not yet declared / coming soon.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --void:    #03060c;
+  --marine:  #101c33;   /* the plate that multiplies the panel film down */
+  --hero-plate: #2b3b58; /* lighter: the hero poster is already a night shot */
+  --burn:    #b9c7e2;   /* the light screened back through the letters */
+  --paper:   #f2efe9;
+  --muted:   #7c8697;
+  --green:   #64e0a4;   /* green channel — i drift */
+  --red:     #ff4b2e;   /* red channel  — att deklarera */
+  --hairline: rgba(242,239,233,.14);
+
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "Archivo", ui-sans-serif, system-ui, "Helvetica Neue", Arial, sans-serif;
+
+  --gutter: clamp(1.25rem, 4vw, 4.5rem);
+
+  /* Exposure and plate are tuned to the hero footage, not to legibility —
+     the burn layer below guarantees that on its own. Lower --exposure and
+     darken --hero-plate if you swap in something brighter than a night shot. */
+  --exposure: 2.0;
+}
+
+* { box-sizing: border-box; }
+html {
+  scroll-behavior: smooth;
+  /* On <html>, not <body>: on <body> this makes the body its own scroll
+     container, which quietly breaks anchor links and scroll position. */
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--paper);
+  font-family: var(--sans);
+  font-variation-settings: "wdth" 100, "wght" 400;
+  -webkit-font-smoothing: antialiased;
+}
+img, video { display: block; max-width: 100%; }
+a { color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 6px;
+}
+
+/* utility face — used for every label, code and status on the page */
+.mono {
+  font-family: var(--mono);
+  font-size: clamp(.62rem, .95vw, .78rem);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── HERO ──────────────────────────────────────────────────────
+   The wordmark is not drawn on top of the film, it is burnt through
+   it, in two plates, the way a darkroom print is dodged and burned:
+
+     1. .hero__plate  marine × film  — multiply, pushes the whole
+                                       frame down to a dark ambient
+     2. .hero__burn   light + film   — screen, only inside the letters
+
+   Screen can only ever lighten, so the letters are guaranteed to land
+   at least as bright as --burn no matter what is playing underneath,
+   while the footage still modulates them. Legible over black footage,
+   legible over a white sky. Each letter's shutter lifts in turn.
+   ───────────────────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+.hero__film {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  filter: brightness(var(--exposure)) contrast(1.04) saturate(1.06);
+}
+.hero__film video,
+.hero__film .hero__still {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero__still {
+  background: url("media/hero-poster.webp") center / cover no-repeat;
+  animation: drift 46s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  from { transform: scale(1.04) translate3d(-1.2%, 0.6%, 0); }
+  to   { transform: scale(1.14) translate3d(1.4%, -1.1%, 0); }
+}
+
+.hero__plate,
+.hero__burn {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.hero__plate {
+  background: var(--hero-plate);
+  mix-blend-mode: multiply;
+}
+.hero__burn {
+  z-index: 2;
+  mix-blend-mode: screen;
+  display: grid;
+  place-items: center;
+  padding: 0 var(--gutter);
+  container-type: inline-size;
+}
+.wordmark {
+  margin: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-variation-settings: "wdth" 118, "wght" 900;
+  /* 6.12 is the measured advance of DEKLARO at this width/weight, so the
+     word is set to the exact inner width at every viewport — no guessing. */
+  font-size: calc(100cqw / 6.12);
+  line-height: .8;
+  letter-spacing: -.012em;
+  color: var(--burn);
+}
+.wordmark span {
+  display: block;
+  clip-path: inset(100% 0 0 0);
+  will-change: clip-path;
+}
+.hero.is-lit .wordmark span {
+  animation: shutter 1.15s cubic-bezier(.16,.84,.28,1) forwards;
+  animation-delay: calc(var(--i) * 105ms + 260ms);
+}
+@keyframes shutter {
+  from { clip-path: inset(100% 0 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+.hero__foot {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--gutter) clamp(1.4rem, 3vw, 2.6rem);
+}
+.hero__cue {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .7rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.hero__cue::after {
+  content: "";
+  width: 1px; height: 2.6rem;
+  background: linear-gradient(var(--muted), transparent);
+  transform-origin: top;
+  animation: sink 2.4s ease-in-out infinite;
+}
+@keyframes sink { 0%,100% { transform: scaleY(1); opacity: .8 } 50% { transform: scaleY(.55); opacity: .35 } }
+
+/* ── SERVICES ─────────────────────────────────────────────────
+   Two full-bleed panels. Order is not a ranking, so they carry
+   the sector they serve instead of a number.
+   ───────────────────────────────────────────────────────────── */
+.panel {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  isolation: isolate;
+  border-top: 1px solid var(--hairline);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+}
+.panel__bg {
+  position: absolute; inset: 0; z-index: -2;
+  background: #05070d;
+  transform: scale(1.08);
+  transition: transform 1.4s cubic-bezier(.16,.84,.28,1);
+}
+.panel__bg video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.panel.is-in .panel__bg { transform: scale(1); }
+.panel:hover .panel__bg,
+.panel:focus-visible .panel__bg { transform: scale(1.05); }
+/* The same two plates as the hero, so a service name is legible over a
+   bright sky or a sunlit lake, not just over the dark frames. White is the
+   identity under multiply, so the top of the frame is left untouched and
+   only the band the name occupies is pushed down. */
+.panel::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  mix-blend-mode: multiply;
+  background: linear-gradient(to bottom,
+    #20262f 0%,      /* a header band the labels can sit on */
+    #262e3a 6%,
+    #ffffff 20%,     /* the frame, as shot */
+    #ffffff 28%,
+    #46536f 52%,
+    var(--marine) 74%,
+    #080e1a 100%);
+}
+.panel::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(to right, rgba(3,6,12,.42) 0%, rgba(3,6,12,0) 58%);
+}
+.panel__head {
+  padding: clamp(1.1rem, 2.4vw, 2rem) var(--gutter);
+  display: flex;
+  gap: 1.25rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.panel__head .mono:not(.status) { color: #b2bdcd; }
+.panel__body {
+  padding: 0 var(--gutter) clamp(1.4rem, 3vw, 2.6rem);
+  container-type: inline-size;
+}
+.panel__meta {
+  display: flex;
+  gap: 1.25rem clamp(1.5rem, 5vw, 5rem);
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  padding-top: clamp(.9rem, 1.8vw, 1.5rem);
+  border-top: 1px solid var(--hairline);
+}
+
+.status { display: inline-flex; align-items: center; gap: .55rem; }
+.status::before {
+  content: ""; width: .5rem; height: .5rem; border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 0 currentColor;
+}
+.status--live { color: var(--green); }
+.status--live::before { animation: pulse 2.6s ease-out infinite; }
+.status--soon { color: var(--red); }
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(100,224,164,.55); }
+  70%  { box-shadow: 0 0 0 .7rem rgba(100,224,164,0); }
+  100% { box-shadow: 0 0 0 0 rgba(100,224,164,0); }
+}
+
+/* Each service is set to the exact inner width, like the wordmark above:
+   the divisors are the measured advance of the word at this width/weight. */
+.panel__name {
+  margin: 0 0 .06em;
+  line-height: .78;
+  font-variation-settings: "wdth" 112, "wght" 900;
+  letter-spacing: -.025em;
+  white-space: nowrap;
+  color: var(--burn);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: translateY(.14em);
+  transition: opacity .9s ease, transform 1.1s cubic-bezier(.16,.84,.28,1);
+}
+#tullklar .panel__name { font-size: calc(100cqw / 4.20); }
+#notacta  .panel__name { font-size: calc(100cqw / 4.70); }
+.panel.is-in .panel__name { opacity: 1; transform: none; }
+.panel__lede {
+  margin: 0;
+  max-width: 46ch;
+  font-size: clamp(1rem, 1.45vw, 1.32rem);
+  line-height: 1.42;
+  font-variation-settings: "wdth" 94, "wght" 400;
+  color: rgba(242,239,233,.86);
+  opacity: 0;
+  transform: translateY(1rem);
+  transition: opacity .9s ease .18s, transform .9s cubic-bezier(.16,.84,.28,1) .18s;
+}
+.panel.is-in .panel__lede { opacity: 1; transform: none; }
+
+.go {
+  display: inline-flex; align-items: center; gap: .7rem;
+  font-family: var(--mono);
+  font-size: clamp(.72rem, 1.05vw, .85rem);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  padding-bottom: .45rem;
+  border-bottom: 1px solid var(--hairline);
+  transition: border-color .25s ease, gap .25s ease, color .25s ease;
+}
+.panel:hover .go, .panel:focus-visible .go { border-bottom-color: var(--paper); gap: 1.1rem; }
+.go--muted { color: var(--muted); border-bottom-style: dashed; }
+
+/* ── CONTACT ──────────────────────────────────────────────────
+   One address, set at the size of the thing it is meant to do.
+   ───────────────────────────────────────────────────────────── */
+.contact {
+  border-top: 1px solid var(--hairline);
+  padding: clamp(4.5rem, 14vh, 10rem) var(--gutter) clamp(4rem, 12vh, 8rem);
+  display: grid;
+  gap: clamp(1.6rem, 4vw, 3rem);
+  container-type: inline-size;
+}
+.contact__label { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.contact__mail {
+  font-size: calc(100cqw / 11.52);
+  line-height: .95;
+  font-variation-settings: "wdth" 112, "wght" 900;
+  letter-spacing: -.025em;
+  text-decoration: none;
+  display: block;
+  white-space: nowrap;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 2px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size .55s cubic-bezier(.16,.84,.28,1);
+}
+.contact__mail:hover, .contact__mail:focus-visible { background-size: 100% 2px; }
+.contact__note {
+  margin: 0;
+  max-width: 46ch;
+  font-size: clamp(.98rem, 1.35vw, 1.2rem);
+  line-height: 1.45;
+  color: rgba(242,239,233,.72);
+  font-variation-settings: "wdth" 94, "wght" 400;
+}
+
+/* ── FOOTER ───────────────────────────────────────────────────
+   The wordmark returns, this time solid and cropped by the edge
+   of the page: the window at the top, the wall at the bottom.
+   ───────────────────────────────────────────────────────────── */
+.foot { border-top: 1px solid var(--hairline); }
+.foot__data {
+  padding: clamp(1.1rem, 2.4vw, 1.8rem) var(--gutter);
+  display: flex;
+  gap: .9rem clamp(1.2rem, 4vw, 3.5rem);
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.foot__data dl { display: flex; gap: .55rem; margin: 0; }
+.foot__data dt { color: var(--muted); }
+.foot__data dd { margin: 0; color: var(--paper); }
+.foot__data a { text-decoration: none; border-bottom: 1px solid var(--hairline); }
+.foot__data a:hover { border-bottom-color: var(--paper); }
+
+.foot__mark {
+  padding: 0 calc(var(--gutter) * .35);
+  container-type: inline-size;
+  overflow: hidden;
+}
+.foot__mark span {
+  display: block;
+  font-size: calc(100cqw / 6.36);   /* measured advance of DEKLARO at wdth 125 */
+  line-height: 1;
+  font-variation-settings: "wdth" 125, "wght" 900;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+  color: var(--paper);
+  margin-bottom: -.1575em;          /* sit the baseline on the edge of the page */
+}
+
+/* browsers without blend support: plain type on a scrimmed film */
+@supports not (mix-blend-mode: screen) {
+  .hero__plate { background: rgba(5,10,20,.78); mix-blend-mode: normal; }
+  .hero__burn { mix-blend-mode: normal; }
+  .wordmark { color: var(--paper); }
+  .panel::before { mix-blend-mode: normal; background: linear-gradient(to bottom, rgba(3,6,12,.55) 0%, rgba(3,6,12,.15) 22%, rgba(3,6,12,.80) 60%, rgba(3,6,12,.95) 100%); }
+  .panel__name { mix-blend-mode: normal; color: var(--paper); }
+}
+
+/* ── motion, honoured ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .hero__still { animation: none; }
+  .hero__cue::after { animation: none; }
+  .status--live::before { animation: none; }
+  .wordmark span { clip-path: none; }
+  .hero.is-lit .wordmark span { animation: none; }
+  .panel__bg { transform: none !important; transition: none; }
+  .panel__name, .panel__lede { opacity: 1; transform: none; transition: none; }
+}
+
+/* ── small screens ────────────────────────────────────────── */
+@media (max-width: 720px) {
+  /* Narrow screens get the condensed width axis. The words still span the
+     full measure, but a condensed face buys roughly 50% more cap height
+     for the same width, so nothing shrinks into a caption. */
+  .wordmark,
+  .panel__name,
+  .contact__mail,
+  .foot__mark span { font-variation-settings: "wdth" 75, "wght" 900; }
+
+  .wordmark { font-size: calc(100cqw / 4.09); letter-spacing: -.02em; }
+  #tullklar .panel__name { font-size: calc(100cqw / 3.02); }
+  #notacta  .panel__name { font-size: calc(100cqw / 3.22); }
+  .contact__mail { font-size: calc(100cqw / 8.09); }
+  .foot__mark span { font-size: calc(100cqw / 4.05); }
+
+  /* Portrait crops hard into a 1.9:1 frame; bias toward the cranes. */
+  .hero__still { background-position: 61% center; }
+
+  .panel__meta { flex-direction: column; align-items: flex-start; gap: 1.1rem; }
+  .foot__data { flex-direction: column; gap: .55rem; }
+}
 </style>
 </head>
 <body>
-  <main>
-    <h1>DEKLARO</h1>
-    <hr>
-    <a href="mailto:kontakt@deklaro.se">kontakt@deklaro.se</a>
-  </main>
+
+<!-- ══ HERO ══════════════════════════════════════════════════ -->
+<header class="hero" id="top">
+  <div class="hero__film">
+    <!-- To run film here instead of the still, add media/hero.mp4 and replace
+         the div below with this — the script picks it up as-is, pausing it
+         off screen and leaving it stopped under prefers-reduced-motion:
+
+         <video class="hero__video" autoplay muted loop playsinline
+                preload="metadata" poster="media/hero-poster.webp">
+           <source src="media/hero.mp4" type="video/mp4">
+         </video>
+
+         Keep it dark and slow; the wordmark is burnt through it. -->
+    <div class="hero__still" role="img" aria-label="Hamn i blå timme"></div>
+  </div>
+
+  <div class="hero__plate" aria-hidden="true"></div>
+
+  <div class="hero__burn">
+    <h1 class="wordmark" aria-label="Deklaro"><span aria-hidden="true" style="--i:0">D</span><span aria-hidden="true" style="--i:1">E</span><span aria-hidden="true" style="--i:2">K</span><span aria-hidden="true" style="--i:3">L</span><span aria-hidden="true" style="--i:4">A</span><span aria-hidden="true" style="--i:5">R</span><span aria-hidden="true" style="--i:6">O</span></h1>
+  </div>
+
+  <div class="hero__foot">
+    <a class="hero__cue mono" href="#tullklar">Se tjänsterna</a>
+  </div>
+</header>
+
+<main>
+  <!-- ══ TULLKLAR ════════════════════════════════════════════ -->
+  <a class="panel" id="tullklar" href="https://tullklar.se" rel="noopener">
+    <div class="panel__bg" aria-hidden="true">
+      <video muted loop playsinline preload="none"
+             poster="media/tullklar-hero-poster.webp"
+             data-src="media/tullklar-hero-1440.mp4"
+             data-src-small="media/tullklar-hero-960.mp4"></video>
+    </div>
+
+    <div class="panel__head">
+      <span class="mono">Tull &amp; import</span>
+      <span class="mono status status--live">I drift — tullklar.se</span>
+    </div>
+
+    <div class="panel__body">
+      <h2 class="panel__name">Tullklar</h2>
+      <div class="panel__meta">
+        <p class="panel__lede">AI-tullassistenten för svenska importörer och speditörer. Fråga om tullsats, ursprung eller dokumentkrav och få svaret med källan. Ladda upp fakturan, få deklarationsunderlaget tillbaka.</p>
+        <span class="go">Besök tullklar.se ↗</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- ══ NOTACTA ═════════════════════════════════════════════ -->
+  <a class="panel" id="notacta" href="https://notacta.se" rel="noopener">
+    <div class="panel__bg" aria-hidden="true">
+      <video muted loop playsinline preload="none"
+             poster="media/notacta-hero-poster.webp"
+             data-src="media/notacta-hero.mp4"
+             data-src-small="media/notacta-hero-960.mp4"></video>
+    </div>
+
+    <div class="panel__head">
+      <span class="mono">Vård &amp; journal</span>
+      <span class="mono status status--soon">Kommer snart — notacta.se</span>
+    </div>
+
+    <div class="panel__body">
+      <h2 class="panel__name">Notacta</h2>
+      <div class="panel__meta">
+        <p class="panel__lede">Journalutkast från dina samtal. Du granskar, kopierar till ditt journalsystem och raderar. All behandling sker inom EU.</p>
+        <span class="go go--muted">Besök notacta.se ↗</span>
+      </div>
+    </div>
+  </a>
+
+  <!-- ══ CONTACT ═════════════════════════════════════════════ -->
+  <section class="contact" id="kontakt" aria-labelledby="kontakt-rubrik">
+    <div class="contact__label">
+      <span class="mono" id="kontakt-rubrik">Kontakt</span>
+      <span class="mono">Svenska eller engelska</span>
+    </div>
+    <a class="contact__mail" href="mailto:kontakt@deklaro.se">kontakt@deklaro.se</a>
+    <p class="contact__note">Vi är utvecklare och designers i Stockholm.</p>
+  </section>
+</main>
+
+<!-- ══ FOOTER ════════════════════════════════════════════════ -->
+<footer class="foot">
+  <div class="foot__data mono">
+    <dl><dt>Bolag</dt><dd>Deklaro AB</dd></dl>
+    <dl><dt>Org.nr</dt><dd>559574-4847</dd></dl>
+    <dl><dt>Säte</dt><dd>Stockholm, Sverige</dd></dl>
+    <dl><dt>E-post</dt><dd><a href="mailto:kontakt@deklaro.se">kontakt@deklaro.se</a></dd></dl>
+  </div>
+  <div class="foot__mark" aria-hidden="true"><span>DEKLARO</span></div>
+</footer>
+
+<script>
+(function () {
+  var hero = document.querySelector('.hero');
+
+  // Light the wordmark once the display face is ready, so the shutters
+  // never lift on a fallback metric and re-jump when Archivo lands.
+  function lightHero() { if (hero) hero.classList.add('is-lit'); }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(lightHero);
+    setTimeout(lightHero, 1800); // never let a slow font hold the page dark
+  } else {
+    lightHero();
+  }
+
+  var video = document.querySelector('.hero__video');
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var lean = window.matchMedia('(max-width: 720px)').matches ||
+             window.matchMedia('(prefers-reduced-data: reduce)').matches;
+
+  // Small screens and metered connections get the lighter encode.
+  function filmSource(el) {
+    return (lean && el.dataset.srcSmall) ? el.dataset.srcSmall : el.dataset.src;
+  }
+  // A hero film, if one has been put in, holds on its poster under
+  // prefers-reduced-motion rather than autoplaying.
+  if (video && reduced) {
+    video.removeAttribute('autoplay');
+    video.pause();
+  }
+
+  // Panels arrive as they enter, and their film only loads and runs
+  // while it is actually on screen.
+  var panels = document.querySelectorAll('.panel');
+  if (!('IntersectionObserver' in window)) {
+    panels.forEach(function (p) { p.classList.add('is-in'); });
+    return;
+  }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      var film = e.target.querySelector('video');
+      if (e.isIntersecting) {
+        e.target.classList.add('is-in');
+        if (film && !reduced) {
+          if (!film.src && film.dataset.src) film.src = filmSource(film);
+          var playing = film.play();
+          if (playing && playing.catch) playing.catch(function () {});
+        }
+      } else if (film) {
+        film.pause();
+      }
+    });
+  }, { threshold: 0.28 });
+  panels.forEach(function (p) { io.observe(p); });
+
+  // Same courtesy for the hero.
+  if (video) {
+    new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (reduced) return;
+        if (e.isIntersecting) { var q = video.play(); if (q && q.catch) q.catch(function () {}); }
+        else video.pause();
+      });
+    }, { threshold: 0.1 }).observe(hero);
+  }
+})();
+</script>
 </body>
 </html>
