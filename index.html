@@ -97,7 +97,7 @@ a { color: inherit; }
    Screen can only ever lighten, so the letters are guaranteed to land
    at least as bright as --burn no matter what is playing underneath,
    while the footage still modulates them. Legible over black footage,
-   legible over a white sky. Each letter's shutter lifts in turn.
+   legible over a white sky. The slab below does the revealing.
    ───────────────────────────────────────────────────────────── */
 .hero {
   position: relative;
@@ -147,6 +147,67 @@ a { color: inherit; }
   place-items: center;
   padding: 0 var(--gutter);
   container-type: inline-size;
+  /* 6.12 is the measured advance of DEKLARO at this width/weight, so the
+     word is set to the exact inner width at every viewport — no guessing.
+     The band below is cut from the same two numbers. */
+  --wm-size: calc(100cqw / 6.12);
+  --wm-lh: .8;
+  --wm-band: .7;      /* how much of the wordmark's box the slab keeps */
+  --wm-tilt: 2.2deg;
+  /* hard ease-out: the slab snaps open, then decelerates into the tilt.
+     Shared, so the two animations below cannot drift apart. */
+  --wm-ease: cubic-bezier(.16,.86,.24,1);
+  --wm-rise: .3s;     /* how long one letter takes to arrive */
+  --wm-step: 34ms;    /* gap between letters */
+  --wm-lag: .26s;     /* the whole reveal waits this long for the font */
+}
+
+/* The word is not shown whole: a slab the size of the wordmark's own box
+   is cut down to --wm-band of its height, centred on it, then turned a
+   couple of degrees anticlockwise so the left edge rides below the right.
+   The slab is what clips; the h1 inside is turned back through the same
+   angle about the same centre, so the letters stay level and only the
+   cut is tilted.
+
+   The cut is a clip-path rather than a height, so the reveal below can
+   animate it without touching layout. The sides are held open at -50% so
+   the tilt never shaves the outer edge of the D or the O.
+
+   The reveal runs in three beats. The slab snaps open from a hairline to
+   the full box while the letters slide up through its lower edge, one
+   after another; the whole word then sits level just long enough to
+   read; and finally the slab closes back down to --wm-band and turns
+   into the tilt it keeps. Roughly 0.35s out, 0.25s held, 0.9s settling —
+   and the last letter lands before the tilt starts, so the two never
+   move at once. */
+.wordmark-band {
+  width: 100%;
+  height: calc(var(--wm-size) * var(--wm-lh));
+  display: grid;
+  place-items: center;
+  clip-path: inset(50% -50%);   /* shut */
+  will-change: clip-path, transform;
+}
+.hero.is-lit .wordmark-band {
+  animation: band-cut 1.5s var(--wm-ease) var(--wm-lag) forwards;
+}
+/* The h1 rides the same clock, turning the opposite way. Same duration,
+   easing, delay and keyframe stops as band-cut, so the two stay locked
+   and the letters never read as tilted. */
+.hero.is-lit .wordmark {
+  animation: band-level 1.5s var(--wm-ease) var(--wm-lag) forwards;
+}
+@keyframes band-cut {
+  0%       { clip-path: inset(50% -50%); transform: rotate(0deg); }
+  /* -6% gives the caps a little slack, so the open beat is unmistakably
+     the whole letter and not the box edge grazing it */
+  24%, 40% { clip-path: inset(-6% -50%); transform: rotate(0deg); }
+  100%     { clip-path: inset(calc((1 - var(--wm-band)) * 50%) -50%);
+             transform: rotate(calc(-1 * var(--wm-tilt))); }
+}
+@keyframes band-level {
+  0%, 40% { transform: rotate(0deg); }
+  100%    { transform: rotate(var(--wm-tilt)); }
 }
 .wordmark {
   margin: 0;
@@ -155,25 +216,27 @@ a { color: inherit; }
   justify-content: space-between;
   align-items: baseline;
   font-variation-settings: "wdth" 118, "wght" 900;
-  /* 6.12 is the measured advance of DEKLARO at this width/weight, so the
-     word is set to the exact inner width at every viewport — no guessing. */
-  font-size: calc(100cqw / 6.12);
-  line-height: .8;
+  font-size: var(--wm-size);
+  line-height: var(--wm-lh);
   letter-spacing: -.012em;
   color: var(--burn);
 }
+/* The letters come up from under the slab's lower edge in turn. 115%
+   parks them far enough below that the ascenders cannot graze the open
+   cut before their turn. The slab does the cutting, the letter does the
+   moving — one gesture rather than two competing reveals. */
 .wordmark span {
   display: block;
-  clip-path: inset(100% 0 0 0);
-  will-change: clip-path;
+  transform: translateY(115%);
+  will-change: transform;
 }
 .hero.is-lit .wordmark span {
-  animation: shutter 1.15s cubic-bezier(.16,.84,.28,1) forwards;
-  animation-delay: calc(var(--i) * 105ms + 260ms);
+  animation: letter-rise var(--wm-rise) var(--wm-ease)
+             calc(var(--wm-lag) + var(--i) * var(--wm-step)) both;
 }
-@keyframes shutter {
-  from { clip-path: inset(100% 0 0 0); }
-  to   { clip-path: inset(0 0 0 0); }
+@keyframes letter-rise {
+  from { transform: translateY(115%); }
+  to   { transform: translateY(0); }
 }
 
 .hero__foot {
@@ -414,8 +477,16 @@ a { color: inherit; }
   .hero__still { animation: none; }
   .hero__cue::after { animation: none; }
   .status--live::before { animation: none; }
-  .wordmark span { clip-path: none; }
-  .hero.is-lit .wordmark span { animation: none; }
+  .hero .wordmark-band,
+  .hero.is-lit .wordmark-band {
+    animation: none;
+    clip-path: inset(calc((1 - var(--wm-band)) * 50%) -50%);
+    transform: rotate(calc(-1 * var(--wm-tilt)));
+  }
+  .hero .wordmark,
+  .hero.is-lit .wordmark { animation: none; transform: rotate(var(--wm-tilt)); }
+  .hero .wordmark span,
+  .hero.is-lit .wordmark span { animation: none; transform: none; }
   .panel__bg { transform: none !important; transition: none; }
   .panel__name, .panel__lede { opacity: 1; transform: none; transition: none; }
 }
@@ -430,7 +501,8 @@ a { color: inherit; }
   .contact__mail,
   .foot__mark span { font-variation-settings: "wdth" 75, "wght" 900; }
 
-  .wordmark { font-size: calc(100cqw / 4.09); letter-spacing: -.02em; }
+  .hero__burn { --wm-size: calc(100cqw / 4.09); }
+  .wordmark { letter-spacing: -.02em; }
   #tullklar .panel__name { font-size: calc(100cqw / 3.02); }
   #notacta  .panel__name { font-size: calc(100cqw / 3.22); }
   .contact__mail { font-size: calc(100cqw / 8.09); }
@@ -465,7 +537,9 @@ a { color: inherit; }
   <div class="hero__plate" aria-hidden="true"></div>
 
   <div class="hero__burn">
-    <h1 class="wordmark" aria-label="Deklaro"><span aria-hidden="true" style="--i:0">D</span><span aria-hidden="true" style="--i:1">E</span><span aria-hidden="true" style="--i:2">K</span><span aria-hidden="true" style="--i:3">L</span><span aria-hidden="true" style="--i:4">A</span><span aria-hidden="true" style="--i:5">R</span><span aria-hidden="true" style="--i:6">O</span></h1>
+    <div class="wordmark-band">
+      <h1 class="wordmark" aria-label="Deklaro"><span aria-hidden="true" style="--i:0">D</span><span aria-hidden="true" style="--i:1">E</span><span aria-hidden="true" style="--i:2">K</span><span aria-hidden="true" style="--i:3">L</span><span aria-hidden="true" style="--i:4">A</span><span aria-hidden="true" style="--i:5">R</span><span aria-hidden="true" style="--i:6">O</span></h1>
+    </div>
   </div>
 
   <div class="hero__foot">
@@ -546,8 +620,8 @@ a { color: inherit; }
 (function () {
   var hero = document.querySelector('.hero');
 
-  // Light the wordmark once the display face is ready, so the shutters
-  // never lift on a fallback metric and re-jump when Archivo lands.
+  // Light the wordmark once the display face is ready, so the slab never
+  // opens on a fallback metric and re-jumps when Archivo lands.
   function lightHero() { if (hero) hero.classList.add('is-lit'); }
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(lightHero);
